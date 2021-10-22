@@ -34,7 +34,7 @@ extern SD_HandleTypeDef hsd;
 
 /* USER CODE BEGIN Private defines */
 
-#define SDIO_TIMEOUT    10
+#define SDIO_TIMEOUT    100
 
 /* USER CODE END Private defines */
 
@@ -43,7 +43,7 @@ void MX_SDIO_SD_Init(void);
 /* USER CODE BEGIN Prototypes */
 
 void SDIO_ShowInfo(void);
-HAL_StatusTypeDef SD_GetCardState(void);
+HAL_StatusTypeDef SDIO_GetCardState(void);
 HAL_StatusTypeDef SDIO_Write_Sector(uint32_t sector_addr, uint32_t sector_cnt, uint8_t* buf);
 HAL_StatusTypeDef SDIO_Write_Buf(uint32_t sector_addr, uint8_t* buf, uint32_t len);
 HAL_StatusTypeDef SDIO_Read_Sector(uint32_t sector_addr, uint32_t sector_cnt, uint8_t* buf);
