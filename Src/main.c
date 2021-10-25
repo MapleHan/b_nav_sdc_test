@@ -112,16 +112,16 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    const uint32_t SEC_CNT = 10;
+    const uint32_t SEC_CNT = 1;
     const uint32_t BUF_SIZE = SEC_CNT*512;
     __align(4) uint8_t buf[BUF_SIZE];
     for (int i=0;i<BUF_SIZE;i++)
     {
         buf[i] = 'A' + i%10;
     }
-    DBG_Print(DBG_INFO, "Raw Data\r\n");
-    DBG_Print(DBG_INFO, "%s", buf);
-    DBG_Print(DBG_INFO, "\r\n\r\n");
+//    DBG_Print(DBG_INFO, "Raw Data\r\n");
+//    DBG_Print(DBG_INFO, "%s", buf);
+//    DBG_Print(DBG_INFO, "\r\n\r\n");
 
 
     HAL_StatusTypeDef state;
@@ -130,9 +130,13 @@ int main(void)
     state = SDIO_Write_Sector(0, SEC_CNT, buf);
     HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
     if(state == HAL_OK)
+    {
         DBG_Print(DBG_INFO, "SDIO_Write_Sector 0 OK\r\n\r\n");
+    }
     else
+    {
         DBG_Print(DBG_INFO, "SDIO_Write_Sector 0 Err\r\n\r\n");
+    }
     HAL_Delay(1);
 
     memset(buf, 0, BUF_SIZE);
@@ -142,11 +146,13 @@ int main(void)
     if(state == HAL_OK)
     {
         DBG_Print(DBG_INFO, "SDIO_Read_Sector 0 OK\r\n");
-        DBG_Print(DBG_INFO, "%s", buf);
-        DBG_Print(DBG_INFO, "\r\n");
+//        DBG_Print(DBG_INFO, "%s", buf);
+//        DBG_Print(DBG_INFO, "\r\n");
     }
     else
+    {
         DBG_Print(DBG_INFO, "SDIO_Read_Sector 0 Err\r\n\r\n");
+    }
     HAL_Delay(1);
 
     HAL_Delay(20000000);

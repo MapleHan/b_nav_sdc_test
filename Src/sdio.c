@@ -27,8 +27,8 @@
 #define BLOCK_SIZE  (512)
 __align(4) static uint8_t cpy_buf[BLOCK_SIZE];
 
-static uint8_t WriteStatus = 0;
-static uint8_t ReadStatus = 0;
+static uint8_t WriteStatus = 1;
+static uint8_t ReadStatus = 1;
 /* USER CODE END 0 */
 
 SD_HandleTypeDef hsd;
@@ -204,6 +204,7 @@ void SDIO_ShowInfo(void)
  	DBG_Print(DBG_INFO, "Card Logical Block Size:%d\r\n\r\n", hsd.SdCard.LogBlockSize); //显示块大小
 }
 
+//HAL_SD_GetCardState函数Timeout = 5000ms，请注意
 HAL_StatusTypeDef SDIO_GetCardState(void)
 {
   return((HAL_SD_GetCardState(&hsd)==HAL_SD_CARD_TRANSFER )?HAL_OK:HAL_BUSY);
@@ -221,39 +222,45 @@ static uint32_t SDIO_BufLen2SecCnt(uint32_t len)
     return(sector_cnt);
 }
 
+HAL_StatusTypeDef SDIO_WaitReady()
+{
+    static HAL_StatusTypeDef state = HAL_ERROR;
+    uint32_t timeout = HAL_GetTick();
+
+    while(((WriteStatus == 0) || (ReadStatus == 0)) && ((HAL_GetTick() - timeout) < SDIO_TIMEOUT))
+    {
+    }
+    /* incase of a timeout return error */
+    if ((WriteStatus == 0) || (ReadStatus == 0))
+    {
+      state = HAL_ERROR;
+    }
+    else
+    {
+      timeout = HAL_GetTick();
+      while((HAL_GetTick() - timeout) < SDIO_TIMEOUT)
+      {
+        if (SDIO_GetCardState() == HAL_OK)
+        {
+          state = HAL_OK;
+          break;
+        }
+      }
+    }
+    return(state);
+}
+
 //一次写一个Sector约700-900us，一次写10个Sector约1600us，但开机后第一次写入单个Sector耗时可能较长约2-5ms
 HAL_StatusTypeDef SDIO_Write_Sector(uint32_t sector_addr, uint32_t sector_cnt, uint8_t* buf)
 {
-    static HAL_StatusTypeDef state;
-    uint32_t timeout;
-        
+    static HAL_StatusTypeDef state = HAL_ERROR;
+
     WriteStatus = 0;
-    state = HAL_SD_WriteBlocks_DMA(&hsd, buf, sector_addr, sector_cnt);
-    if(state == HAL_OK)
+    state = HAL_SD_WriteBlocks_DMA(&hsd, buf, sector_addr, sector_cnt);// 约20us
+
+    if( state == HAL_OK)
     {
-        timeout = HAL_GetTick();
-        while((WriteStatus == 0) && ((HAL_GetTick() - timeout) < SDIO_TIMEOUT))
-        {
-        }
-        /* incase of a timeout return error */
-        if (WriteStatus == 0)
-        {
-          state = HAL_ERROR;
-        }
-        else
-        {
-          WriteStatus = 0;
-          timeout = HAL_GetTick();
-          state = HAL_ERROR;
-          while((HAL_GetTick() - timeout) < SDIO_TIMEOUT)
-          {
-            if (SDIO_GetCardState() == HAL_OK)
-            {
-              state = HAL_OK;
-              break;
-            }
-          }
-        }
+        state = SDIO_WaitReady();// 绝大部分时间耗费在这里
     }
     return(state);
 }
@@ -293,37 +300,14 @@ HAL_StatusTypeDef SDIO_Write_Buf(uint32_t sector_addr, uint8_t* buf, uint32_t le
 //一次读一个Sector约200--240us，一次读10个Sector约600--800us，但开机后第一次读取单个Sector耗时可能较长约2--5ms
 HAL_StatusTypeDef SDIO_Read_Sector(uint32_t sector_addr, uint32_t sector_cnt, uint8_t* buf)
 {
-    static HAL_StatusTypeDef state;
-    uint32_t timeout;
+    static HAL_StatusTypeDef state = HAL_ERROR;
 
     ReadStatus = 0;
-    state = HAL_SD_ReadBlocks_DMA(&hsd, buf, sector_addr, sector_cnt);
-    if (state == HAL_OK)
+    state = HAL_SD_ReadBlocks_DMA(&hsd, buf, sector_addr, sector_cnt);// 约20us
+    
+    if( state == HAL_OK)
     {
-        /* Wait that the reading process is completed or a timeout occurs */
-        timeout = HAL_GetTick();
-        while((ReadStatus == 0) && ((HAL_GetTick() - timeout) < SDIO_TIMEOUT))
-        {
-        }
-        /* incase of a timeout return error */
-        if (ReadStatus == 0)
-        {
-          state = HAL_ERROR;
-        }
-        else
-        {
-          ReadStatus = 0;
-          timeout = HAL_GetTick();
-          state = HAL_ERROR;
-          while((HAL_GetTick() - timeout) < SDIO_TIMEOUT)
-          {
-            if (SDIO_GetCardState() == HAL_OK)
-            {
-                state = HAL_OK;
-                break;
-            }
-          }
-        }
+        state = SDIO_WaitReady();// 绝大部分时间耗费在这里
     }
     return(state);
 }
