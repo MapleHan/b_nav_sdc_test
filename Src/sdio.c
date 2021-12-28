@@ -250,7 +250,8 @@ HAL_StatusTypeDef SDIO_WaitReady()
     return(state);
 }
 
-//一次写一个Sector约700-900us，一次写10个Sector约1600us，但开机后第一次写入单个Sector耗时可能较长约2-5ms
+//不间断(两次写入间隔<5MS)一次写一个Sector约700-900us，一次写10个Sector约1600us，但开机后第一次写入单个Sector耗时可能较长约2-5ms,甚至更多
+//如果两次写入间隔大于5MS,那么一次写一个Sector约2000--3000us
 HAL_StatusTypeDef SDIO_Write_Sector(uint32_t sector_addr, uint32_t sector_cnt, uint8_t* buf)
 {
     static HAL_StatusTypeDef state = HAL_ERROR;
