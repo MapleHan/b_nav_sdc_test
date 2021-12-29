@@ -16,7 +16,8 @@ static void DBG_My_Printf(uint8_t* data, uint16_t size)
 {
 	if(USE_UART_DBG)
 	{
-		HAL_UART_Transmit_DMA(&huart1, data, size);
+        HAL_UART_Transmit(&huart1, data, size, 10);
+//		HAL_UART_Transmit_DMA(&huart1, data, size);
 	}
 }
 

@@ -30,6 +30,7 @@
 /* USER CODE BEGIN Includes */
 #include "my_printf.h"
 #include "string.h"
+#include "dwt.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,7 +71,7 @@ void SystemClock_Config(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  dwt_init();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -98,8 +99,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   SDIO_ShowInfo();
-//  uint8_t t = 0;
-//  HAL_UART_Receive(&huart1, &t, 1, 1000000);
+  uint8_t t = 0;
+  HAL_UART_Receive(&huart1, &t, 1, 1000000);
 //  HAL_TIM_Base_Start_IT(&htim1);
 
   /* USER CODE END 2 */
@@ -111,43 +112,26 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    const uint32_t delta_tus = 50000;
 
-    const uint32_t SEC_CNT = 10;
-    const uint32_t BUF_SIZE = SEC_CNT*512;
+    const uint32_t BUF_SIZE = 2048;
     __align(4) uint8_t buf[BUF_SIZE];
     for (int i=0;i<BUF_SIZE;i++)
     {
-        buf[i] = 'A' + i%10;
+        buf[i] = 'A';
     }
-    DBG_Print(DBG_INFO, "Raw Data\r\n");
-    DBG_Print(DBG_INFO, "%s", buf);
-    DBG_Print(DBG_INFO, "\r\n\r\n");
 
-
-    HAL_StatusTypeDef state;
-
-    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-    state = SDIO_Write_Sector(0, SEC_CNT, buf);
-    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-    if(state == HAL_OK)
-        DBG_Print(DBG_INFO, "SDIO_Write_Sector 0 OK\r\n\r\n");
-    else
-        DBG_Print(DBG_INFO, "SDIO_Write_Sector 0 Err\r\n\r\n");
-    HAL_Delay(1);
-
-    memset(buf, 0, BUF_SIZE);
-    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-    state = SDIO_Read_Sector(0, SEC_CNT, buf);
-    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-    if(state == HAL_OK)
+    for(int i=5000; i<9000; i+=4)
     {
-        DBG_Print(DBG_INFO, "SDIO_Read_Sector 0 OK\r\n");
-        DBG_Print(DBG_INFO, "%s", buf);
-        DBG_Print(DBG_INFO, "\r\n");
+        HAL_StatusTypeDef state;
+        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+        state = SDIO_Write_Sector(i, 4, buf);
+        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+        if(state == HAL_OK)
+            dwt_delay_micros(delta_tus);
+        else
+            dwt_delay_micros(100000);
     }
-    else
-        DBG_Print(DBG_INFO, "SDIO_Read_Sector 0 Err\r\n\r\n");
-    HAL_Delay(1);
 
     HAL_Delay(20000000);
     
@@ -171,7 +155,7 @@ void SystemClock_Config(void)
   /** Initializes the CPU, AHB and APB busses clocks 
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 4;

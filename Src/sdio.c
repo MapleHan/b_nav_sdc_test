@@ -23,6 +23,7 @@
 /* USER CODE BEGIN 0 */
 #include "my_printf.h"
 #include "string.h"
+#include "dwt.h"
 
 #define BLOCK_SIZE  (512)
 __align(4) static uint8_t cpy_buf[BLOCK_SIZE];
@@ -221,6 +222,12 @@ static uint32_t SDIO_BufLen2SecCnt(uint32_t len)
     return(sector_cnt);
 }
 
+    uint32_t st = 0;
+    uint32_t ct = 0;
+    uint32_t et = 0;
+    uint32_t dt1 = 0;
+    uint32_t dt2 = 0;
+    uint32_t dt3 = 0;
 //一次写一个Sector约700-900us，一次写10个Sector约1600us，但开机后第一次写入单个Sector耗时可能较长约2-5ms
 HAL_StatusTypeDef SDIO_Write_Sector(uint32_t sector_addr, uint32_t sector_cnt, uint8_t* buf)
 {
@@ -228,6 +235,7 @@ HAL_StatusTypeDef SDIO_Write_Sector(uint32_t sector_addr, uint32_t sector_cnt, u
     uint32_t timeout;
         
     WriteStatus = 0;
+    st = dwt_micros();
     state = HAL_SD_WriteBlocks_DMA(&hsd, buf, sector_addr, sector_cnt);
     if(state == HAL_OK)
     {
@@ -239,9 +247,11 @@ HAL_StatusTypeDef SDIO_Write_Sector(uint32_t sector_addr, uint32_t sector_cnt, u
         if (WriteStatus == 0)
         {
           state = HAL_ERROR;
+          ct = dwt_micros();
         }
         else
         {
+          ct = dwt_micros();
           WriteStatus = 0;
           timeout = HAL_GetTick();
           state = HAL_ERROR;
@@ -250,11 +260,45 @@ HAL_StatusTypeDef SDIO_Write_Sector(uint32_t sector_addr, uint32_t sector_cnt, u
             if (SDIO_GetCardState() == HAL_OK)
             {
               state = HAL_OK;
+              et = dwt_micros();
               break;
             }
           }
         }
+        if(state != HAL_OK)
+        {
+            et = dwt_micros();
+        }
     }
+
+    if(et < st)
+    {
+        dt1 = et + dwt_max_usec() - st;
+    }
+    else
+    {
+        dt1 = et - st;
+    }
+
+    if(ct < st)
+    {
+        dt2 = ct + dwt_max_usec() - st;
+    }
+    else
+    {
+        dt2 = ct - st;
+    }
+
+    if(et < ct)
+    {
+        dt3 = et + dwt_max_usec() - ct;
+    }
+    else
+    {
+        dt3 = et - ct;
+    }
+
+    DBG_Print(DBG_INFO, "%u\t%u\t%u\r\n",dt1, dt2, dt3);
     return(state);
 }
 
